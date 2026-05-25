@@ -24,25 +24,32 @@ webhookRoute.post('/lemonsqueezy', async (c) => {
   const eventName: string = payload.meta?.event_name ?? ''
 
   try {
-    if (eventName === 'order_created') {
-      // @spec LIC-API-005, LIC-API-016
-      // LIC-API-009 [D]: paths below unverified — confirm against a live LS test webhook
+    if (eventName === 'license_key_created') {
+      // @spec LIC-API-005, LIC-API-009, LIC-API-016
+      // Paths verified against live payload 2026-05-25.
+      // status is 'inactive' on creation; transitions to 'active' via license_key_updated.
+      // product_name is not in this resource — use PRODUCT_NAME env var.
       const attrs = payload.data?.attributes ?? {}
-      const licenseKey: string = attrs.first_order_item?.license_key ?? ''
+      const licenseKey: string = attrs.key ?? ''
       const email: string = attrs.user_email ?? ''
-      const productVersion: string = attrs.first_order_item?.product_name ?? ''
+      const productVersion: string = process.env.PRODUCT_NAME ?? 'Vizier'
       const createdAt = attrs.created_at ? new Date(attrs.created_at) : new Date()
+      const rawStatus: string = attrs.status ?? 'inactive'
+      const status = (['active', 'inactive', 'expired'] as const).includes(
+        rawStatus as 'active' | 'inactive' | 'expired'
+      )
+        ? (rawStatus as 'active' | 'inactive' | 'expired')
+        : 'inactive'
 
       await db
         .insert(licenses)
-        .values({ licenseKey, email, productVersion, status: 'active', createdAt })
+        .values({ licenseKey, email, productVersion, status, createdAt })
         .onConflictDoUpdate({
           target: licenses.licenseKey,
-          set: { email, productVersion, status: 'active' },
+          set: { email, productVersion, status },
         })
     } else if (eventName === 'license_key_updated') {
-      // @spec LIC-API-006
-      // LIC-API-009 [D]: paths below unverified — confirm against a live LS test webhook
+      // @spec LIC-API-006, LIC-API-009
       const attrs = payload.data?.attributes ?? {}
       const licenseKey: string = attrs.key ?? ''
       const rawStatus: string = attrs.status ?? ''
