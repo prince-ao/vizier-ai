@@ -1,0 +1,5 @@
+{
+  "name": "vizier-ai",
+  "private": true,
+  "workspaces": ["packages/*"]
+}

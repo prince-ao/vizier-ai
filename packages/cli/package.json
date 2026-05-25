@@ -1,0 +1,5 @@
+{
+  "name": "@vizier/cli",
+  "version": "0.1.0",
+  "description": "Vizier CLI — activate, install, update, status"
+}
